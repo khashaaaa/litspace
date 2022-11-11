@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS "consumer" (
 );
 
 -- Payment Method
-CREATE TABLE IF NOT EXISTS "payment_method" (
+CREATE TABLE IF NOT EXISTS "paymethod" (
     mark UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     owner UUID NOT NULL,
     holder_name VARCHAR NOT NULL,
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS "product" (
     FOREIGN KEY (merchant) REFERENCES merchant(mark)
 );
 
-CREATE TABLE IF NOT EXISTS "ordered_items" (
+CREATE TABLE IF NOT EXISTS "orderitems" (
     mark SERIAL PRIMARY KEY,
     p_mark UUID NOT NULL,
     p_name VARCHAR NOT NULL,
@@ -168,8 +168,8 @@ CREATE TABLE IF NOT EXISTS "provider" (
     entity_name VARCHAR NOT NULL,
     email VARCHAR NOT NULL,
     mobile VARCHAR NOT NULL,
-    address VARCHAR NOT NULL,
-    origin_country VARCHAR NOT NULL,
+    address VARCHAR,
+    origin_country VARCHAR,
     in_status confirmation DEFAULT 'UNCERTAIN',
     type figure DEFAULT 'PROVIDER',
     created TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,

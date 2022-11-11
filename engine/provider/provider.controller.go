@@ -1,4 +1,4 @@
-package consumer
+package provider
 
 import (
 	"net/http"
@@ -6,26 +6,15 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/khashaaaa/litspace/config"
-	"golang.org/x/crypto/bcrypt"
 )
-
-func Hash(pazzword string) (string, error) {
-	hash, hashErr := bcrypt.GenerateFromPassword([]byte(pazzword), bcrypt.DefaultCost)
-	return string(hash), hashErr
-}
-
-func Compare(pazz string, hashed string) error {
-	err := bcrypt.CompareHashAndPassword([]byte(pazz), []byte(hashed))
-	return err
-}
 
 func Register(context *fiber.Ctx) error {
 
 	connector := config.InitConn()
 
-	consumer := new(Consumer)
+	provider := new(Provider)
 
-	parseErr := context.BodyParser(consumer)
+	parseErr := context.BodyParser(provider)
 
 	if parseErr != nil {
 		return context.Status(http.StatusBadRequest).JSON(&fiber.Map{
@@ -35,17 +24,7 @@ func Register(context *fiber.Ctx) error {
 		})
 	}
 
-	hashed, hashErr := Hash(consumer.Pass)
-
-	if hashErr != nil {
-		return context.Status(http.StatusNotAcceptable).JSON(&fiber.Map{
-			"status":  http.StatusNotAcceptable,
-			"message": hashErr.Error(),
-			"data":    nil,
-		})
-	}
-
-	created, createErr := connector.Query("INSERT INTO consumer(first_name, last_name, email, pass) VALUES($1, $2, $3, $4)", consumer.FirstName, consumer.LastName, consumer.Email, hashed)
+	created, createErr := connector.Query("INSERT INTO provider(founder, entity_name, email, mobile) VALUES($1, $2, $3, $4)", provider.Founder, provider.EntityName, provider.Email, provider.Mobile)
 
 	if createErr != nil {
 		return context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
@@ -57,89 +36,8 @@ func Register(context *fiber.Ctx) error {
 
 	return context.Status(http.StatusCreated).JSON(&fiber.Map{
 		"status":  http.StatusCreated,
-		"message": "Хэрэглэгч бүртгэгдлээ",
+		"message": "Гүйцэтгэгч бүртгэгдлээ",
 		"data":    created,
-	})
-}
-
-func Login(context *fiber.Ctx) error {
-
-	connector := config.InitConn()
-
-	var auth = Auth{}
-
-	parseErr1 := context.BodyParser(&auth)
-
-	if parseErr1 != nil {
-		return context.Status(http.StatusBadRequest).JSON(&fiber.Map{
-			"status":  http.StatusBadRequest,
-			"message": parseErr1.Error(),
-			"data":    nil,
-		})
-	}
-
-	found, foundErr := connector.Query("SELECT mark, first_name, last_name, email, mobile, origin_country, pass, type, created, updated FROM consumer WHERE email=$1", auth.Email)
-
-	if foundErr != nil {
-		return context.Status(http.StatusNotFound).JSON(&fiber.Map{
-			"status":  http.StatusNotFound,
-			"message": foundErr.Error(),
-			"data":    nil,
-		})
-	}
-
-	var consumer = Consumer{}
-
-	parseErr2 := context.BodyParser(&consumer)
-
-	if parseErr2 != nil {
-		return context.Status(http.StatusBadRequest).JSON(&fiber.Map{
-			"status":  http.StatusBadRequest,
-			"message": parseErr2.Error(),
-			"data":    nil,
-		})
-	}
-
-	for found.Next() {
-
-		findErr := found.Scan(
-			&consumer.Mark,
-			&consumer.FirstName,
-			&consumer.LastName,
-			&consumer.Email,
-			&consumer.Mobile,
-			&consumer.OriginCountry,
-			&consumer.Pass,
-			&consumer.Type,
-			&consumer.Created,
-			&consumer.Updated,
-		)
-
-		if findErr != nil {
-			return context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
-				"status":  http.StatusInternalServerError,
-				"message": findErr.Error(),
-				"data":    nil,
-			})
-		}
-	}
-
-	compareError := Compare(consumer.Pass, auth.Pass)
-
-	if compareError != nil {
-		return context.Status(http.StatusForbidden).JSON(&fiber.Map{
-			"status":  http.StatusForbidden,
-			"message": compareError.Error(),
-			"data":    nil,
-		})
-	}
-
-	consumer.Pass = auth.Pass
-
-	return context.Status(http.StatusOK).JSON(&fiber.Map{
-		"status":  http.StatusOK,
-		"message": "Хэрэглэгч",
-		"data":    consumer,
 	})
 }
 
@@ -147,10 +45,10 @@ func ShowAll(context *fiber.Ctx) error {
 
 	connector := config.InitConn()
 
-	var consumerz []Consumer
-	var consumer Consumer
+	var providerz []Provider
+	var provider Provider
 
-	rows, rowErr := connector.Query("SELECT mark, first_name, last_name, email, mobile, origin_country, pass, type, created, updated FROM consumer")
+	rows, rowErr := connector.Query("SELECT mark, founder, entity_name, email, mobile, address, origin_country, in_status, type, created, updated FROM provider")
 
 	if rowErr != nil {
 		return context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
@@ -163,16 +61,17 @@ func ShowAll(context *fiber.Ctx) error {
 	for rows.Next() {
 
 		loopErr := rows.Scan(
-			&consumer.Mark,
-			&consumer.FirstName,
-			&consumer.LastName,
-			&consumer.Email,
-			&consumer.Mobile,
-			&consumer.OriginCountry,
-			&consumer.Pass,
-			&consumer.Type,
-			&consumer.Created,
-			&consumer.Updated,
+			&provider.Mark,
+			&provider.Founder,
+			&provider.EntityName,
+			&provider.Email,
+			&provider.Mobile,
+			&provider.Address,
+			&provider.OriginCountry,
+			&provider.InStatus,
+			&provider.Type,
+			&provider.Created,
+			&provider.Updated,
 		)
 
 		if loopErr != nil {
@@ -183,13 +82,13 @@ func ShowAll(context *fiber.Ctx) error {
 			})
 		}
 
-		consumerz = append(consumerz, consumer)
+		providerz = append(providerz, provider)
 	}
 
 	return context.Status(http.StatusOK).JSON(&fiber.Map{
 		"status":  http.StatusOK,
-		"message": "Хэрэглэгчийн жагсаалт",
-		"data":    consumerz,
+		"message": "Гүйцэтгэгчдийн жагсаалт",
+		"data":    providerz,
 	})
 }
 
@@ -197,11 +96,11 @@ func ShowSingle(context *fiber.Ctx) error {
 
 	connector := config.InitConn()
 
-	var consumer Consumer
+	var provider Provider
 
 	param := context.Params("mark")
 
-	query, queryErr := connector.Query("SELECT mark, first_name, last_name, email, mobile, origin_country, pass, type, created, updated FROM consumer WHERE mark=$1", param)
+	query, queryErr := connector.Query("SELECT mark, founder, entity_name, email, mobile, address, origin_country, in_status, type, created, updated FROM provider WHERE mark=$1", param)
 
 	if queryErr != nil {
 		return context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
@@ -214,16 +113,17 @@ func ShowSingle(context *fiber.Ctx) error {
 	for query.Next() {
 
 		findErr := query.Scan(
-			&consumer.Mark,
-			&consumer.FirstName,
-			&consumer.LastName,
-			&consumer.Email,
-			&consumer.Mobile,
-			&consumer.OriginCountry,
-			&consumer.Pass,
-			&consumer.Type,
-			&consumer.Created,
-			&consumer.Updated,
+			&provider.Mark,
+			&provider.Founder,
+			&provider.EntityName,
+			&provider.Email,
+			&provider.Mobile,
+			&provider.Address,
+			&provider.OriginCountry,
+			&provider.InStatus,
+			&provider.Type,
+			&provider.Created,
+			&provider.Updated,
 		)
 
 		if findErr != nil {
@@ -237,8 +137,8 @@ func ShowSingle(context *fiber.Ctx) error {
 
 	return context.Status(http.StatusOK).JSON(&fiber.Map{
 		"status":  http.StatusOK,
-		"message": "Хэрэглэгч",
-		"data":    consumer,
+		"message": "Гүйцэтгэгч",
+		"data":    provider,
 	})
 }
 
@@ -248,9 +148,9 @@ func UpdateSingle(context *fiber.Ctx) error {
 
 	param := context.Params("mark")
 
-	consumer := new(Consumer)
+	provider := new(Provider)
 
-	parseErr := context.BodyParser(consumer)
+	parseErr := context.BodyParser(provider)
 
 	if parseErr != nil {
 		return context.Status(http.StatusBadRequest).JSON(&fiber.Map{
@@ -260,7 +160,7 @@ func UpdateSingle(context *fiber.Ctx) error {
 		})
 	}
 
-	query, queryErr := connector.Prepare("UPDATE consumer SET first_name=$1, last_name=$2, email=$3, mobile=$4, origin_country=$5, updated=$6 WHERE mark=$7")
+	query, queryErr := connector.Prepare("UPDATE provider SET founder=$1, entity_name=$2, email=$3, mobile=$4, address=$5, origin_country=$6, updated=$7 WHERE mark=$8")
 
 	if queryErr != nil {
 		return context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
@@ -271,11 +171,12 @@ func UpdateSingle(context *fiber.Ctx) error {
 	}
 
 	exec, execErr := query.Exec(
-		&consumer.FirstName,
-		&consumer.LastName,
-		&consumer.Email,
-		&consumer.Mobile,
-		&consumer.OriginCountry,
+		&provider.Founder,
+		&provider.EntityName,
+		&provider.Email,
+		&provider.Mobile,
+		&provider.Address,
+		&provider.OriginCountry,
 		time.Now(),
 		param,
 	)
@@ -290,55 +191,7 @@ func UpdateSingle(context *fiber.Ctx) error {
 
 	return context.Status(http.StatusOK).JSON(&fiber.Map{
 		"status":  http.StatusOK,
-		"message": "Хэрэглэгчийн мэдээлэл өөрчлөгдлөө",
-		"data":    exec,
-	})
-}
-
-func UpdatePass(context *fiber.Ctx) error {
-
-	connector := config.InitConn()
-
-	param := context.Params("mark")
-
-	consumer := new(Consumer)
-
-	parseErr := context.BodyParser(consumer)
-
-	if parseErr != nil {
-		return context.Status(http.StatusBadRequest).JSON(&fiber.Map{
-			"status":  http.StatusBadRequest,
-			"message": parseErr.Error(),
-			"data":    nil,
-		})
-	}
-
-	query, queryErr := connector.Prepare("UPDATE consumer SET pass=$1 WHERE mark=$2")
-
-	if queryErr != nil {
-		return context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
-			"status":  http.StatusInternalServerError,
-			"message": queryErr.Error(),
-			"data":    nil,
-		})
-	}
-
-	exec, execErr := query.Exec(
-		&consumer.Pass,
-		param,
-	)
-
-	if execErr != nil {
-		return context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
-			"status":  http.StatusInternalServerError,
-			"message": execErr.Error(),
-			"data":    nil,
-		})
-	}
-
-	return context.Status(http.StatusOK).JSON(&fiber.Map{
-		"status":  http.StatusOK,
-		"message": "Хэрэглэгчийн мэдээлэл өөрчлөгдлөө",
+		"message": "Гүйцэтгэгчийн мэдээлэл өөрчлөгдлөө",
 		"data":    exec,
 	})
 }
@@ -349,9 +202,9 @@ func UpdateType(context *fiber.Ctx) error {
 
 	param := context.Params("mark")
 
-	consumer := new(Consumer)
+	provider := new(Provider)
 
-	parseErr := context.BodyParser(consumer)
+	parseErr := context.BodyParser(provider)
 
 	if parseErr != nil {
 		return context.Status(http.StatusBadRequest).JSON(&fiber.Map{
@@ -361,7 +214,7 @@ func UpdateType(context *fiber.Ctx) error {
 		})
 	}
 
-	query, queryErr := connector.Prepare("UPDATE consumer SET type=$1 WHERE mark=$2")
+	query, queryErr := connector.Prepare("UPDATE provider SET type=$1 WHERE mark=$2")
 
 	if queryErr != nil {
 		return context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
@@ -372,7 +225,7 @@ func UpdateType(context *fiber.Ctx) error {
 	}
 
 	exec, execErr := query.Exec(
-		&consumer.Type,
+		&provider.Type,
 		param,
 	)
 
@@ -386,7 +239,55 @@ func UpdateType(context *fiber.Ctx) error {
 
 	return context.Status(http.StatusOK).JSON(&fiber.Map{
 		"status":  http.StatusOK,
-		"message": "Хэрэглэгчийн мэдээлэл өөрчлөгдлөө",
+		"message": "Гүйцэтгэгчийн мэдээлэл өөрчлөгдлөө",
+		"data":    exec,
+	})
+}
+
+func UpdateStatus(context *fiber.Ctx) error {
+
+	connector := config.InitConn()
+
+	param := context.Params("mark")
+
+	provider := new(Provider)
+
+	parseErr := context.BodyParser(provider)
+
+	if parseErr != nil {
+		return context.Status(http.StatusBadRequest).JSON(&fiber.Map{
+			"status":  http.StatusBadRequest,
+			"message": parseErr.Error(),
+			"data":    nil,
+		})
+	}
+
+	query, queryErr := connector.Prepare("UPDATE provider SET in_status=$1 WHERE mark=$2")
+
+	if queryErr != nil {
+		return context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
+			"status":  http.StatusInternalServerError,
+			"message": queryErr.Error(),
+			"data":    nil,
+		})
+	}
+
+	exec, execErr := query.Exec(
+		&provider.InStatus,
+		param,
+	)
+
+	if execErr != nil {
+		return context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
+			"status":  http.StatusInternalServerError,
+			"message": execErr.Error(),
+			"data":    nil,
+		})
+	}
+
+	return context.Status(http.StatusOK).JSON(&fiber.Map{
+		"status":  http.StatusOK,
+		"message": "Гүйцэтгэгчийн мэдээлэл өөрчлөгдлөө",
 		"data":    exec,
 	})
 }
@@ -397,7 +298,7 @@ func DeleteSingle(context *fiber.Ctx) error {
 
 	param := context.Params("mark")
 
-	query, queryErr := connector.Prepare("DELETE FROM consumer WHERE mark=$1")
+	query, queryErr := connector.Prepare("DELETE FROM provider WHERE mark=$1")
 
 	if queryErr != nil {
 		return context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
@@ -419,7 +320,7 @@ func DeleteSingle(context *fiber.Ctx) error {
 
 	return context.Status(http.StatusOK).JSON(&fiber.Map{
 		"status":  http.StatusOK,
-		"message": "Хэрэглэгч устгагдлаа",
+		"message": "Гүйцэтгэгч устгагдлаа",
 		"data":    exec,
 	})
 }

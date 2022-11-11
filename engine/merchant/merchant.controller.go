@@ -45,7 +45,7 @@ func ShowAll(context *fiber.Ctx) error {
 
 	connector := config.InitConn()
 
-	var merchantz = []Merchant{}
+	var merchantz []Merchant
 	var merchant Merchant
 
 	rows, rowErr := connector.Query("SELECT mark, founder, entity_name, email, mobile, address, origin_country, buy_dest, sell_dest, in_status, type, created, updated FROM merchant")
@@ -100,7 +100,7 @@ func ShowSingle(context *fiber.Ctx) error {
 
 	var merchant Merchant
 
-	param := context.Params("id")
+	param := context.Params("mark")
 
 	query, queryErr := connector.Query("SELECT mark, founder, entity_name, email, mobile, address, origin_country, buy_dest, sell_dest, in_status, type, created, updated FROM merchant WHERE mark=$1", param)
 
@@ -150,7 +150,7 @@ func UpdateSingle(context *fiber.Ctx) error {
 
 	connector := config.InitConn()
 
-	param := context.Params("id")
+	param := context.Params("mark")
 
 	merchant := new(Merchant)
 
@@ -206,7 +206,7 @@ func UpdateType(context *fiber.Ctx) error {
 
 	connector := config.InitConn()
 
-	param := context.Params("id")
+	param := context.Params("mark")
 
 	merchant := new(Merchant)
 
@@ -250,11 +250,59 @@ func UpdateType(context *fiber.Ctx) error {
 	})
 }
 
+func UpdateStatus(context *fiber.Ctx) error {
+
+	connector := config.InitConn()
+
+	param := context.Params("mark")
+
+	merchant := new(Merchant)
+
+	parseErr := context.BodyParser(merchant)
+
+	if parseErr != nil {
+		return context.Status(http.StatusBadRequest).JSON(&fiber.Map{
+			"status":  http.StatusBadRequest,
+			"message": parseErr.Error(),
+			"data":    nil,
+		})
+	}
+
+	query, queryErr := connector.Prepare("UPDATE merchant SET in_status=$1 WHERE mark=$2")
+
+	if queryErr != nil {
+		return context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
+			"status":  http.StatusInternalServerError,
+			"message": queryErr.Error(),
+			"data":    nil,
+		})
+	}
+
+	exec, execErr := query.Exec(
+		&merchant.InStatus,
+		param,
+	)
+
+	if execErr != nil {
+		return context.Status(http.StatusInternalServerError).JSON(&fiber.Map{
+			"status":  http.StatusInternalServerError,
+			"message": execErr.Error(),
+			"data":    nil,
+		})
+	}
+
+	return context.Status(http.StatusOK).JSON(&fiber.Map{
+		"status":  http.StatusOK,
+		"message": "Худалдагчийн мэдээлэл өөрчлөгдлөө",
+		"data":    exec,
+	})
+}
+
 func DeleteSingle(context *fiber.Ctx) error {
 
 	connector := config.InitConn()
 
-	param := context.Params("id")
+	param := context.Params("mark")
 
 	query, queryErr := connector.Prepare("DELETE FROM merchant WHERE mark=$1")
 

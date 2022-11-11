@@ -7,9 +7,9 @@ type Provider struct {
 	Email         *string `json:"email"`
 	Mobile        *string `json:"mobile"`
 	Address       *string `json:"address"`
-	OriginCountry *string `json:"origin_country,omitempty"`
-	InStatus      *string `json:"in_status"`
-	Type          *string `json:"type,omitempty"`
-	Created       *string `json:"created,omitempty"`
-	Updated       *string `json:"updated,omitempty"`
+	OriginCountry *string `json:"origin_country"`
+	InStatus      string  `json:"in_status"`
+	Type          string  `json:"type"`
+	Created       *string `json:"created"`
+	Updated       *string `json:"updated"`
 }

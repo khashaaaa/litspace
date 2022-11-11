@@ -8,8 +8,9 @@ func MerchantRouter(router fiber.Router) {
 
 	merchant.Post("/register", Register)
 	merchant.Get("/all", ShowAll)
-	merchant.Get("/:id", ShowSingle)
-	merchant.Patch("/:id", UpdateSingle)
-	merchant.Patch("/:id/type", UpdateType)
-	merchant.Delete("/:id", DeleteSingle)
+	merchant.Get("/:mark", ShowSingle)
+	merchant.Patch("/:mark", UpdateSingle)
+	merchant.Patch("/:mark/type", UpdateType)
+	merchant.Patch("/:mark/status", UpdateStatus)
+	merchant.Delete("/:mark", DeleteSingle)
 }

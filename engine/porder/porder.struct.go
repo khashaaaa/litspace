@@ -1,6 +1,6 @@
 package porder
 
-type Porder struct {
+type POrder struct {
 	Mark     string  `json:"mark"`
 	Items    *uint   `json:"items"`
 	Sum      *uint   `json:"sum"`

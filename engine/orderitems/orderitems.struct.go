@@ -1,6 +1,6 @@
-package ordereditems
+package orderitems
 
-type OrderedItems struct {
+type OrderItems struct {
 	Mark      uint    `json:"mark"`
 	PMark     *uint   `json:"p_mark"`
 	PName     *string `json:"p_name"`

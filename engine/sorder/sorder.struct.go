@@ -1,6 +1,6 @@
 package sorder
 
-type Sorder struct {
+type SOrder struct {
 	Mark          string  `json:"mark"`
 	Service       *string `json:"service"`
 	Amount        *uint   `json:"amount"`
